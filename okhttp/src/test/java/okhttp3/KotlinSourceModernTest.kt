@@ -1165,6 +1165,13 @@ class KotlinSourceModernTest {
       override fun isCanceled(): Boolean = TODO()
       override fun timeout(): Timeout = TODO()
       override fun clone(): Call = TODO()
+      override fun requestPriorityUpdate(weight: Int) {
+        TODO()
+      }
+
+      override fun onPriorityUpdated(weight: Int) {
+        TODO()
+      }
     }
   }
 

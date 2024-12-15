@@ -22,7 +22,7 @@ import okio.Timeout
  * A call is a request that has been prepared for execution. A call can be canceled. As this object
  * represents a single request/response pair (stream), it cannot be executed twice.
  */
-interface Call : Cloneable {
+interface Call : Cloneable, RequestPriorityUpdate, OnPriorityUpdated {
   /** Returns the original request that initiated this call. */
   fun request(): Request
 

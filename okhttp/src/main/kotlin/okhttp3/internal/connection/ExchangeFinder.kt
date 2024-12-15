@@ -79,7 +79,7 @@ class ExchangeFinder(
           connectionRetryEnabled = client.retryOnConnectionFailure,
           doExtensiveHealthChecks = chain.request.method != "GET"
       )
-      return resultConnection.newCodec(client, chain)
+      return resultConnection.newCodec(client, chain, call)
     } catch (e: RouteException) {
       trackFailure(e.lastConnectException)
       throw e

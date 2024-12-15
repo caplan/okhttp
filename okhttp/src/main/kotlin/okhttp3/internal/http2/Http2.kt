@@ -35,6 +35,7 @@ object Http2 {
   const val TYPE_GOAWAY = 0x7
   const val TYPE_WINDOW_UPDATE = 0x8
   const val TYPE_CONTINUATION = 0x9
+  const val TYPE_PRIORITY_UPDATE = 0x10
 
   const val FLAG_NONE = 0x0
   const val FLAG_ACK = 0x1 // Used for settings and ping.

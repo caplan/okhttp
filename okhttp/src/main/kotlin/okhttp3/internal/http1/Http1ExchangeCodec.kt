@@ -104,6 +104,10 @@ class Http1ExchangeCodec(
     connection.cancel()
   }
 
+  override fun requestPriorityUpdate(weight: Int) {}
+
+  override fun onPriorityUpdated(weight: Int) {}
+
   /**
    * Prepares the HTTP headers and sends them to the server.
    *

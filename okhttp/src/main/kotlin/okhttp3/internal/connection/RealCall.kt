@@ -36,6 +36,8 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.OnPriorityUpdated.Companion.NOOP
+import okhttp3.OnPriorityUpdated
 import okhttp3.internal.assertThreadDoesntHoldLock
 import okhttp3.internal.assertThreadHoldsLock
 import okhttp3.internal.cache.CacheInterceptor
@@ -61,8 +63,9 @@ class RealCall(
   val client: OkHttpClient,
   /** The application's original request unadulterated by redirects or auth headers. */
   val originalRequest: Request,
-  val forWebSocket: Boolean
-) : Call {
+  val forWebSocket: Boolean,
+  onPriorityUpdated: OnPriorityUpdated = NOOP
+) : OnPriorityUpdated by onPriorityUpdated, Call {
   private val connectionPool: RealConnectionPool = client.connectionPool.delegate
 
   internal val eventListener: EventListener = client.eventListenerFactory.create(this)
@@ -169,6 +172,10 @@ class RealCall(
   private fun callStart() {
     this.callStackTrace = Platform.get().getStackTraceForCloseable("response.body().close()")
     eventListener.callStart(this)
+  }
+
+  override fun requestPriorityUpdate(weight: Int) {
+    exchange?.requestPriorityUpdate(weight)
   }
 
   @Throws(IOException::class)

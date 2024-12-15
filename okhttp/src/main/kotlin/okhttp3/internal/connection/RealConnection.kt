@@ -42,6 +42,7 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
+import okhttp3.OnPriorityUpdated
 import okhttp3.Response
 import okhttp3.Route
 import okhttp3.internal.EMPTY_RESPONSE
@@ -603,14 +604,16 @@ class RealConnection(
   }
 
   @Throws(SocketException::class)
-  internal fun newCodec(client: OkHttpClient, chain: RealInterceptorChain): ExchangeCodec {
+  internal fun newCodec(client: OkHttpClient,
+                        chain: RealInterceptorChain,
+                        onPriorityUpdated: OnPriorityUpdated): ExchangeCodec {
     val socket = this.socket!!
     val source = this.source!!
     val sink = this.sink!!
     val http2Connection = this.http2Connection
 
     return if (http2Connection != null) {
-      Http2ExchangeCodec(client, this, chain, http2Connection)
+      Http2ExchangeCodec(client, this, chain, http2Connection, onPriorityUpdated)
     } else {
       socket.soTimeout = chain.readTimeoutMillis()
       source.timeout().timeout(chain.readTimeoutMillis.toLong(), MILLISECONDS)

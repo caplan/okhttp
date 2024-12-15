@@ -25,6 +25,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.OnPriorityUpdated
 import okhttp3.internal.connection.RealConnection
 import okhttp3.internal.headersContentLength
 import okhttp3.internal.http.ExchangeCodec
@@ -51,8 +52,9 @@ class Http2ExchangeCodec(
   client: OkHttpClient,
   override val connection: RealConnection,
   private val chain: RealInterceptorChain,
-  private val http2Connection: Http2Connection
-) : ExchangeCodec {
+  private val http2Connection: Http2Connection,
+  onPriorityUpdated: OnPriorityUpdated
+) : ExchangeCodec, OnPriorityUpdated by onPriorityUpdated {
   @Volatile private var stream: Http2Stream? = null
 
   private val protocol: Protocol = if (Protocol.H2_PRIOR_KNOWLEDGE in client.protocols) {
@@ -73,7 +75,7 @@ class Http2ExchangeCodec(
 
     val hasRequestBody = request.body != null
     val requestHeaders = http2HeadersList(request)
-    stream = http2Connection.newStream(requestHeaders, hasRequestBody)
+    stream = http2Connection.newStream(requestHeaders, hasRequestBody, this)
     // We may have been asked to cancel while creating the new stream and sending the request
     // headers, but there was still no stream to close.
     if (canceled) {
@@ -90,6 +92,12 @@ class Http2ExchangeCodec(
 
   override fun finishRequest() {
     stream!!.getSink().close()
+  }
+
+  override fun requestPriorityUpdate(weight: Int) {
+    stream?.let {
+      http2Connection.writePriorityUpdate(it.id, weight)
+    }
   }
 
   override fun readResponseHeaders(expectContinue: Boolean): Response.Builder? {

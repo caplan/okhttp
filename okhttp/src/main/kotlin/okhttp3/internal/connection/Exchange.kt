@@ -23,6 +23,7 @@ import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody
+import okhttp3.RequestPriorityUpdate
 import okhttp3.internal.http.ExchangeCodec
 import okhttp3.internal.http.RealResponseBody
 import okhttp3.internal.ws.RealWebSocket
@@ -42,7 +43,7 @@ class Exchange(
   internal val eventListener: EventListener,
   internal val finder: ExchangeFinder,
   private val codec: ExchangeCodec
-) {
+): RequestPriorityUpdate {
   /** True if the request body need not complete before the response body starts. */
   internal var isDuplex: Boolean = false
     private set
@@ -328,5 +329,9 @@ class Exchange(
       }
       return bodyComplete(bytesReceived, responseDone = true, requestDone = false, e = e)
     }
+  }
+
+  override fun requestPriorityUpdate(weight: Int) {
+    codec.requestPriorityUpdate(weight)
   }
 }

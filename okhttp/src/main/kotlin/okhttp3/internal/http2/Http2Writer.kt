@@ -31,6 +31,7 @@ import okhttp3.internal.http2.Http2.TYPE_DATA
 import okhttp3.internal.http2.Http2.TYPE_GOAWAY
 import okhttp3.internal.http2.Http2.TYPE_HEADERS
 import okhttp3.internal.http2.Http2.TYPE_PING
+import okhttp3.internal.http2.Http2.TYPE_PRIORITY_UPDATE
 import okhttp3.internal.http2.Http2.TYPE_PUSH_PROMISE
 import okhttp3.internal.http2.Http2.TYPE_RST_STREAM
 import okhttp3.internal.http2.Http2.TYPE_SETTINGS
@@ -59,6 +60,19 @@ class Http2Writer(
       logger.fine(format(">> CONNECTION ${CONNECTION_PREFACE.hex()}"))
     }
     sink.write(CONNECTION_PREFACE)
+    sink.flush()
+  }
+
+  @Synchronized @Throws(IOException::class)
+  fun priorityUpdate(streamId: Int, weight: Int) {
+    if (closed) throw IOException("closed")
+    frameHeader(
+      streamId = streamId,
+      length = 4,
+      type = TYPE_PRIORITY_UPDATE,
+      flags = FLAG_NONE
+    )
+    sink.writeInt(weight)
     sink.flush()
   }
 
