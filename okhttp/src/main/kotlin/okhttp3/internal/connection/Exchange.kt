@@ -15,24 +15,14 @@
  */
 package okhttp3.internal.connection
 
-import java.io.IOException
-import java.net.ProtocolException
-import java.net.SocketException
-import okhttp3.EventListener
-import okhttp3.Headers
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.ResponseBody
-import okhttp3.RequestPriorityUpdate
+import okhttp3.*
 import okhttp3.internal.http.ExchangeCodec
 import okhttp3.internal.http.RealResponseBody
 import okhttp3.internal.ws.RealWebSocket
-import okio.Buffer
-import okio.ForwardingSink
-import okio.ForwardingSource
-import okio.Sink
-import okio.Source
-import okio.buffer
+import okio.*
+import java.io.IOException
+import java.net.ProtocolException
+import java.net.SocketException
 
 /**
  * Transmits a single HTTP request and a response pair. This layers connection management and events
@@ -43,7 +33,7 @@ class Exchange(
   internal val eventListener: EventListener,
   internal val finder: ExchangeFinder,
   private val codec: ExchangeCodec
-): RequestPriorityUpdate {
+): RequestPriorityUpdateRFC9218 by codec, RequestPriorityRFC7540 by codec {
   /** True if the request body need not complete before the response body starts. */
   internal var isDuplex: Boolean = false
     private set
@@ -331,7 +321,4 @@ class Exchange(
     }
   }
 
-  override fun requestPriorityUpdate(weight: Int) {
-    codec.requestPriorityUpdate(weight)
-  }
 }

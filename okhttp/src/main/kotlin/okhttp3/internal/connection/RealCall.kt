@@ -15,29 +15,7 @@
  */
 package okhttp3.internal.connection
 
-import java.io.IOException
-import java.io.InterruptedIOException
-import java.lang.ref.WeakReference
-import java.net.Socket
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.RejectedExecutionException
-import java.util.concurrent.TimeUnit.MILLISECONDS
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import javax.net.ssl.HostnameVerifier
-import javax.net.ssl.SSLSocketFactory
-import okhttp3.Address
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.CertificatePinner
-import okhttp3.EventListener
-import okhttp3.HttpUrl
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.OnPriorityUpdated.Companion.NOOP
-import okhttp3.OnPriorityUpdated
+import okhttp3.*
 import okhttp3.internal.assertThreadDoesntHoldLock
 import okhttp3.internal.assertThreadHoldsLock
 import okhttp3.internal.cache.CacheInterceptor
@@ -49,6 +27,17 @@ import okhttp3.internal.http.RetryAndFollowUpInterceptor
 import okhttp3.internal.platform.Platform
 import okhttp3.internal.threadName
 import okio.AsyncTimeout
+import java.io.IOException
+import java.io.InterruptedIOException
+import java.lang.ref.WeakReference
+import java.net.Socket
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit.MILLISECONDS
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.SSLSocketFactory
 
 /**
  * Bridge between OkHttp's application and network layers. This class exposes high-level application
@@ -63,9 +52,8 @@ class RealCall(
   val client: OkHttpClient,
   /** The application's original request unadulterated by redirects or auth headers. */
   val originalRequest: Request,
-  val forWebSocket: Boolean,
-  onPriorityUpdated: OnPriorityUpdated = NOOP
-) : OnPriorityUpdated by onPriorityUpdated, Call {
+  val forWebSocket: Boolean
+) : Call {
   private val connectionPool: RealConnectionPool = client.connectionPool.delegate
 
   internal val eventListener: EventListener = client.eventListenerFactory.create(this)
@@ -174,8 +162,12 @@ class RealCall(
     eventListener.callStart(this)
   }
 
-  override fun requestPriorityUpdate(weight: Int) {
-    exchange?.requestPriorityUpdate(weight)
+  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {
+    exchange?.requestPriorityUpdate(urgency, incremental)
+  }
+
+  override fun requestPriority(weight: Int) {
+    exchange?.requestPriority(weight)
   }
 
   @Throws(IOException::class)

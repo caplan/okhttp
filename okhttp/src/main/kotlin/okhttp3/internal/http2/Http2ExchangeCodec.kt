@@ -15,25 +15,11 @@
  */
 package okhttp3.internal.http2
 
-import java.io.IOException
-import java.net.ProtocolException
-import java.util.ArrayList
-import java.util.Locale
-import java.util.concurrent.TimeUnit
-import okhttp3.Headers
-import okhttp3.OkHttpClient
-import okhttp3.Protocol
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.OnPriorityUpdated
+import okhttp3.*
 import okhttp3.internal.connection.RealConnection
 import okhttp3.internal.headersContentLength
-import okhttp3.internal.http.ExchangeCodec
-import okhttp3.internal.http.RealInterceptorChain
-import okhttp3.internal.http.RequestLine
-import okhttp3.internal.http.StatusLine
+import okhttp3.internal.http.*
 import okhttp3.internal.http.StatusLine.Companion.HTTP_CONTINUE
-import okhttp3.internal.http.promisesBody
 import okhttp3.internal.http2.Header.Companion.RESPONSE_STATUS_UTF8
 import okhttp3.internal.http2.Header.Companion.TARGET_AUTHORITY
 import okhttp3.internal.http2.Header.Companion.TARGET_AUTHORITY_UTF8
@@ -46,15 +32,18 @@ import okhttp3.internal.http2.Header.Companion.TARGET_SCHEME_UTF8
 import okhttp3.internal.immutableListOf
 import okio.Sink
 import okio.Source
+import java.io.IOException
+import java.net.ProtocolException
+import java.util.*
+import java.util.concurrent.TimeUnit
 
 /** Encode requests and responses using HTTP/2 frames. */
 class Http2ExchangeCodec(
   client: OkHttpClient,
   override val connection: RealConnection,
   private val chain: RealInterceptorChain,
-  private val http2Connection: Http2Connection,
-  onPriorityUpdated: OnPriorityUpdated
-) : ExchangeCodec, OnPriorityUpdated by onPriorityUpdated {
+  private val http2Connection: Http2Connection
+) : ExchangeCodec {
   @Volatile private var stream: Http2Stream? = null
 
   private val protocol: Protocol = if (Protocol.H2_PRIOR_KNOWLEDGE in client.protocols) {
@@ -75,7 +64,7 @@ class Http2ExchangeCodec(
 
     val hasRequestBody = request.body != null
     val requestHeaders = http2HeadersList(request)
-    stream = http2Connection.newStream(requestHeaders, hasRequestBody, this)
+    stream = http2Connection.newStream(requestHeaders, hasRequestBody)
     // We may have been asked to cancel while creating the new stream and sending the request
     // headers, but there was still no stream to close.
     if (canceled) {
@@ -94,9 +83,15 @@ class Http2ExchangeCodec(
     stream!!.getSink().close()
   }
 
-  override fun requestPriorityUpdate(weight: Int) {
+  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {
     stream?.let {
-      http2Connection.writePriorityUpdate(it.id, weight)
+      http2Connection.writePriorityUpdateLater(it.id, urgency, incremental)
+    }
+  }
+
+  override fun requestPriority(weight: Int) {
+    stream?.let {
+      http2Connection.writePriorityLater(it.id, weight)
     }
   }
 

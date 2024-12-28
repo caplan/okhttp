@@ -15,35 +15,20 @@
  */
 package okhttp3.internal.http2
 
+import okhttp3.internal.*
+import okhttp3.internal.concurrent.TaskRunner
+import okhttp3.internal.http2.ErrorCode.REFUSED_STREAM
+import okhttp3.internal.http2.Http2.VALID_PRIORITY_VALUES
+import okhttp3.internal.http2.Http2.VALID_URGENCY_VALUES
+import okhttp3.internal.http2.Settings.Companion.DEFAULT_INITIAL_WINDOW_SIZE
+import okhttp3.internal.platform.Platform
+import okhttp3.internal.platform.Platform.Companion.INFO
+import okio.*
 import java.io.Closeable
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.Socket
 import java.util.concurrent.TimeUnit
-import okhttp3.OnPriorityUpdated
-import okhttp3.OnPriorityUpdated.Companion.NOOP
-import okhttp3.internal.EMPTY_BYTE_ARRAY
-import okhttp3.internal.EMPTY_HEADERS
-import okhttp3.internal.assertThreadDoesntHoldLock
-import okhttp3.internal.closeQuietly
-import okhttp3.internal.concurrent.TaskRunner
-import okhttp3.internal.http2.ErrorCode.REFUSED_STREAM
-import okhttp3.internal.http2.Settings.Companion.DEFAULT_INITIAL_WINDOW_SIZE
-import okhttp3.internal.ignoreIoExceptions
-import okhttp3.internal.notifyAll
-import okhttp3.internal.okHttpName
-import okhttp3.internal.peerName
-import okhttp3.internal.platform.Platform
-import okhttp3.internal.platform.Platform.Companion.INFO
-import okhttp3.internal.toHeaders
-import okhttp3.internal.wait
-import okio.Buffer
-import okio.BufferedSink
-import okio.BufferedSource
-import okio.ByteString
-import okio.buffer
-import okio.sink
-import okio.source
 
 /**
  * A socket connection to a remote peer. A connection hosts streams which can send and receive
@@ -212,7 +197,7 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
     out: Boolean
   ): Http2Stream {
     check(!client) { "Client cannot push requests." }
-    return newStream(associatedStreamId, requestHeaders, out, NOOP)
+    return newStream(associatedStreamId, requestHeaders, out)
   }
 
 
@@ -227,30 +212,14 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
     requestHeaders: List<Header>,
     out: Boolean
   ): Http2Stream {
-    return newStream(0, requestHeaders, out, NOOP)
-  }
-
-  /**
-   * Returns a new locally-initiated stream.
-   *
-   * @param out true to create an output stream that we can use to send data to the remote peer.
-   *     Corresponds to `FLAG_FIN`.
-   */
-  @Throws(IOException::class)
-  fun newStream(
-    requestHeaders: List<Header>,
-    out: Boolean,
-    onPriorityUpdated: OnPriorityUpdated
-  ): Http2Stream {
-    return newStream(0, requestHeaders, out, onPriorityUpdated)
+    return newStream(0, requestHeaders, out)
   }
 
   @Throws(IOException::class)
   private fun newStream(
     associatedStreamId: Int,
     requestHeaders: List<Header>,
-    out: Boolean,
-    onPriorityUpdated: OnPriorityUpdated
+    out: Boolean
   ): Http2Stream {
     val outFinished = !out
     val inFinished = false
@@ -268,7 +237,7 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
         }
         streamId = nextStreamId
         nextStreamId += 2
-        stream = Http2Stream(streamId, this, outFinished, inFinished, null, onPriorityUpdated)
+        stream = Http2Stream(streamId, this, outFinished, inFinished, null)
         flushHeaders = !out ||
             writeBytesTotal >= writeBytesMaximum ||
             stream.writeBytesTotal >= stream.writeBytesMaximum
@@ -354,26 +323,54 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
     }
   }
 
-
   internal fun writePriorityUpdateLater(
     streamId: Int,
-    weight: Int
+    urgency: Int,
+    incremental: Boolean
   ) {
+    check(VALID_URGENCY_VALUES.contains(urgency)) { "invalid urgency: $urgency" }
+
     writerQueue.execute("$connectionName[$streamId] writePriorityUpdate") {
       try {
-        writePriorityUpdate(streamId, weight)
+        writePriorityUpdate(streamId, urgency, incremental)
       } catch (e: IOException) {
         failConnection(e)
       }
     }
   }
 
-  @Throws(IOException::class)
-  internal fun writePriorityUpdate(
+  internal fun writePriorityLater(
     streamId: Int,
     weight: Int
   ) {
-    writer.priorityUpdate(streamId, weight)
+    check(VALID_PRIORITY_VALUES.contains(weight)) { "invalid weight: $weight" }
+
+    writerQueue.execute("$connectionName[$streamId] writePriority") {
+      try {
+        writePriority(streamId, weight)
+      } catch (e: IOException) {
+        failConnection(e)
+      }
+    }
+  }
+
+  // RFC 7540
+  @Throws(IOException::class)
+  private fun writePriority(
+    streamId: Int,
+    weight: Int
+  ) {
+    writer.priority(streamId, weight)
+  }
+
+  // RFC 9218
+  @Throws(IOException::class)
+  private fun writePriorityUpdate(
+    streamId: Int,
+    urgency: Int,
+    incremental: Boolean
+  ) {
+    writer.priorityUpdate(streamId, urgency, incremental)
   }
 
   internal fun writeSynResetLater(
@@ -900,11 +897,7 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
       weight: Int,
       exclusive: Boolean
     ) {
-      getStream(streamId)?.let { stream ->
-        priorityListenerQueue.execute("$connectionName priority $weight") {
-          stream.onPriorityUpdated(weight)
-        }
-      }
+      // TODO
     }
 
     override fun pushPromise(

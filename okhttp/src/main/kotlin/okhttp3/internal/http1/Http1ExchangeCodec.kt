@@ -15,34 +15,16 @@
  */
 package okhttp3.internal.http1
 
+import okhttp3.*
+import okhttp3.internal.*
+import okhttp3.internal.connection.RealConnection
+import okhttp3.internal.http.*
+import okhttp3.internal.http.StatusLine.Companion.HTTP_CONTINUE
+import okio.*
 import java.io.EOFException
 import java.io.IOException
 import java.net.ProtocolException
 import java.util.concurrent.TimeUnit.MILLISECONDS
-import okhttp3.Headers
-import okhttp3.HttpUrl
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.internal.EMPTY_HEADERS
-import okhttp3.internal.checkOffsetAndCount
-import okhttp3.internal.connection.RealConnection
-import okhttp3.internal.discard
-import okhttp3.internal.headersContentLength
-import okhttp3.internal.http.ExchangeCodec
-import okhttp3.internal.http.RequestLine
-import okhttp3.internal.http.StatusLine
-import okhttp3.internal.http.StatusLine.Companion.HTTP_CONTINUE
-import okhttp3.internal.http.promisesBody
-import okhttp3.internal.http.receiveHeaders
-import okhttp3.internal.skipAll
-import okio.Buffer
-import okio.BufferedSink
-import okio.BufferedSource
-import okio.ForwardingTimeout
-import okio.Sink
-import okio.Source
-import okio.Timeout
 
 /**
  * A socket connection that can be used to send HTTP/1.1 messages. This class strictly enforces the
@@ -104,9 +86,8 @@ class Http1ExchangeCodec(
     connection.cancel()
   }
 
-  override fun requestPriorityUpdate(weight: Int) {}
-
-  override fun onPriorityUpdated(weight: Int) {}
+  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {}
+  override fun requestPriority(weight: Int) {}
 
   /**
    * Prepares the HTTP headers and sends them to the server.

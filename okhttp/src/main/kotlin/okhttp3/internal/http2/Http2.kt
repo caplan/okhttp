@@ -46,6 +46,10 @@ object Http2 {
   const val FLAG_PRIORITY = 0x20 // Used for headers.
   const val FLAG_COMPRESSED = 0x20 // Used for data.
 
+  val VALID_URGENCY_VALUES = (0 ..7) // RFC 9218
+  val VALID_PRIORITY_VALUES = (1 ..256) // RFC 7540
+  const val DEFAULT_PRIORITY = 16
+
   /** Lookup table for valid frame types. */
   private val FRAME_NAMES = arrayOf(
       "DATA", "HEADERS", "PRIORITY", "RST_STREAM", "SETTINGS", "PUSH_PROMISE", "PING", "GOAWAY",
@@ -89,6 +93,9 @@ object Http2 {
       if (FLAGS[i] == null) FLAGS[i] = BINARY[i]
     }
   }
+
+  internal fun formattedRFC7540PriorityField(urgency: Int, incremental: Boolean) =
+    format("u=%d, %d", urgency, if (incremental) 1 else 0).encodeUtf8()
 
   /**
    * Returns human-readable representation of HTTP/2 frame headers.

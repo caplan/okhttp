@@ -15,8 +15,6 @@
  */
 package okhttp3.internal.http2
 
-import okhttp3.OnPriorityUpdated
-import okhttp3.OnPriorityUpdated.Companion.NOOP
 import okhttp3.Headers
 import okhttp3.internal.EMPTY_HEADERS
 import okhttp3.internal.assertThreadDoesntHoldLock
@@ -42,9 +40,8 @@ class Http2Stream internal constructor(
   val connection: Http2Connection,
   outFinished: Boolean,
   inFinished: Boolean,
-  headers: Headers?,
-  onPriorityUpdated: OnPriorityUpdated = NOOP
-) : OnPriorityUpdated by onPriorityUpdated {
+  headers: Headers?
+) {
   // Internal state is guarded by this. No long-running or potentially blocking operations are
   // performed while the lock is held.
 

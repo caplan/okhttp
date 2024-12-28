@@ -297,11 +297,6 @@ subprojects { project ->
     }
   }
 
-  signing {
-    var inMemoryKey = findProperty("signingInMemoryKey")
-    useInMemoryPgpKeys(null, inMemoryKey, "")
-    sign publishing.publications.maven
-  }
 }
 
 
