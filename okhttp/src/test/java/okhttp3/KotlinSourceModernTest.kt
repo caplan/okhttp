@@ -15,37 +15,6 @@
  */
 package okhttp3
 
-import java.io.File
-import java.io.IOException
-import java.math.BigInteger
-import java.net.CookieHandler
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.ProxySelector
-import java.net.Socket
-import java.net.URI
-import java.net.URL
-import java.nio.charset.Charset
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.Principal
-import java.security.cert.Certificate
-import java.security.cert.X509Certificate
-import java.time.Duration
-import java.time.Instant
-import java.util.Date
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import javax.net.ServerSocketFactory
-import javax.net.SocketFactory
-import javax.net.ssl.HostnameVerifier
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocket
-import javax.net.ssl.SSLSocketFactory
-import javax.net.ssl.X509KeyManager
-import javax.net.ssl.X509TrustManager
 import okhttp3.Handshake.Companion.handshake
 import okhttp3.Headers.Companion.headersOf
 import okhttp3.Headers.Companion.toHeaders
@@ -57,27 +26,38 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.asResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.internal.http2.Http2.DEFAULT_PRIORITY
 import okhttp3.internal.http2.Settings
 import okhttp3.internal.proxy.NullProxySelector
 import okhttp3.internal.tls.OkHostnameVerifier
 import okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.logging.LoggingEventListener
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import okhttp3.mockwebserver.PushPromise
-import okhttp3.mockwebserver.QueueDispatcher
-import okhttp3.mockwebserver.RecordedRequest
-import okhttp3.mockwebserver.SocketPolicy
+import okhttp3.mockwebserver.*
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
 import okhttp3.tls.internal.TlsUtil.localhost
-import okio.Buffer
-import okio.BufferedSink
-import okio.BufferedSource
-import okio.ByteString
-import okio.Timeout
+import okio.*
 import org.junit.Ignore
 import org.junit.Test
+import java.io.File
+import java.io.IOException
+import java.math.BigInteger
+import java.net.*
+import java.nio.charset.Charset
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.Principal
+import java.security.cert.Certificate
+import java.security.cert.X509Certificate
+import java.time.Duration
+import java.time.Instant
+import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import javax.net.ServerSocketFactory
+import javax.net.SocketFactory
+import javax.net.ssl.*
 
 /**
  * Access every type, function, and property from Kotlin to defend against unexpected regressions in
@@ -1165,13 +1145,7 @@ class KotlinSourceModernTest {
       override fun isCanceled(): Boolean = TODO()
       override fun timeout(): Timeout = TODO()
       override fun clone(): Call = TODO()
-      override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {
-        TODO()
-      }
-
-      override fun requestPriority(weight: Int) {
-        TODO()
-      }
+      override var priority = DEFAULT_PRIORITY
     }
   }
 

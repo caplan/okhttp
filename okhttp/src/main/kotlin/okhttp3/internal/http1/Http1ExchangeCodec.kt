@@ -20,6 +20,7 @@ import okhttp3.internal.*
 import okhttp3.internal.connection.RealConnection
 import okhttp3.internal.http.*
 import okhttp3.internal.http.StatusLine.Companion.HTTP_CONTINUE
+import okhttp3.internal.http2.Http2.DEFAULT_PRIORITY
 import okio.*
 import java.io.EOFException
 import java.io.IOException
@@ -86,8 +87,7 @@ class Http1ExchangeCodec(
     connection.cancel()
   }
 
-  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {}
-  override fun requestPriority(weight: Int) {}
+  @Volatile override var priority = DEFAULT_PRIORITY
 
   /**
    * Prepares the HTTP headers and sends them to the server.

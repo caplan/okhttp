@@ -19,7 +19,6 @@ import okhttp3.internal.*
 import okhttp3.internal.concurrent.TaskRunner
 import okhttp3.internal.http2.ErrorCode.REFUSED_STREAM
 import okhttp3.internal.http2.Http2.VALID_PRIORITY_VALUES
-import okhttp3.internal.http2.Http2.VALID_URGENCY_VALUES
 import okhttp3.internal.http2.Settings.Companion.DEFAULT_INITIAL_WINDOW_SIZE
 import okhttp3.internal.platform.Platform
 import okhttp3.internal.platform.Platform.Companion.INFO
@@ -323,22 +322,6 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
     }
   }
 
-  internal fun writePriorityUpdateLater(
-    streamId: Int,
-    urgency: Int,
-    incremental: Boolean
-  ) {
-    check(VALID_URGENCY_VALUES.contains(urgency)) { "invalid urgency: $urgency" }
-
-    writerQueue.execute("$connectionName[$streamId] writePriorityUpdate") {
-      try {
-        writePriorityUpdate(streamId, urgency, incremental)
-      } catch (e: IOException) {
-        failConnection(e)
-      }
-    }
-  }
-
   internal fun writePriorityLater(
     streamId: Int,
     weight: Int
@@ -354,23 +337,12 @@ class Http2Connection internal constructor(builder: Builder) : Closeable {
     }
   }
 
-  // RFC 7540
   @Throws(IOException::class)
   private fun writePriority(
     streamId: Int,
     weight: Int
   ) {
-    writer.priority(streamId, weight)
-  }
-
-  // RFC 9218
-  @Throws(IOException::class)
-  private fun writePriorityUpdate(
-    streamId: Int,
-    urgency: Int,
-    incremental: Boolean
-  ) {
-    writer.priorityUpdate(streamId, urgency, incremental)
+    writer.priority(streamId, 0, weight)
   }
 
   internal fun writeSynResetLater(

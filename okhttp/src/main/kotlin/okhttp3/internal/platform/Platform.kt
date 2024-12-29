@@ -130,6 +130,7 @@ open class Platform {
 
   open fun log(message: String, level: Int = INFO, t: Throwable? = null) {
     val logLevel = if (level == WARN) Level.WARNING else Level.INFO
+    println("$message: $t")
     logger.log(logLevel, message, t)
   }
 

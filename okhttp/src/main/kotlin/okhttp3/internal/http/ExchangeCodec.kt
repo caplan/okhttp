@@ -16,13 +16,13 @@
 package okhttp3.internal.http
 
 import okhttp3.*
-import java.io.IOException
 import okhttp3.internal.connection.RealConnection
 import okio.Sink
 import okio.Source
+import java.io.IOException
 
 /** Encodes HTTP requests and decodes HTTP responses. */
-interface ExchangeCodec : RequestPriorityUpdateRFC9218, RequestPriorityRFC7540 {
+interface ExchangeCodec: RequestPriority {
   /** Returns the connection that carries this codec. */
   val connection: RealConnection
 

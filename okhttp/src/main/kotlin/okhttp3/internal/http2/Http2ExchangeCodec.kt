@@ -29,6 +29,7 @@ import okhttp3.internal.http2.Header.Companion.TARGET_PATH
 import okhttp3.internal.http2.Header.Companion.TARGET_PATH_UTF8
 import okhttp3.internal.http2.Header.Companion.TARGET_SCHEME
 import okhttp3.internal.http2.Header.Companion.TARGET_SCHEME_UTF8
+import okhttp3.internal.http2.Http2.DEFAULT_PRIORITY
 import okhttp3.internal.immutableListOf
 import okio.Sink
 import okio.Source
@@ -43,8 +44,17 @@ class Http2ExchangeCodec(
   override val connection: RealConnection,
   private val chain: RealInterceptorChain,
   private val http2Connection: Http2Connection
-) : ExchangeCodec {
+) : ExchangeCodec, RequestPriority {
   @Volatile private var stream: Http2Stream? = null
+
+  @Volatile
+  override var priority: Int = DEFAULT_PRIORITY
+    set(value) {
+      field = value
+      stream?.let {
+        http2Connection.writePriorityLater(it.id, value)
+      }
+    }
 
   private val protocol: Protocol = if (Protocol.H2_PRIOR_KNOWLEDGE in client.protocols) {
     Protocol.H2_PRIOR_KNOWLEDGE
@@ -73,6 +83,11 @@ class Http2ExchangeCodec(
     }
     stream!!.readTimeout().timeout(chain.readTimeoutMillis.toLong(), TimeUnit.MILLISECONDS)
     stream!!.writeTimeout().timeout(chain.writeTimeoutMillis.toLong(), TimeUnit.MILLISECONDS)
+
+    if (priority != DEFAULT_PRIORITY) {
+      http2Connection.writePriorityLater(stream!!.id, priority)
+    }
+
   }
 
   override fun flushRequest() {
@@ -81,18 +96,6 @@ class Http2ExchangeCodec(
 
   override fun finishRequest() {
     stream!!.getSink().close()
-  }
-
-  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {
-    stream?.let {
-      http2Connection.writePriorityUpdateLater(it.id, urgency, incremental)
-    }
-  }
-
-  override fun requestPriority(weight: Int) {
-    stream?.let {
-      http2Connection.writePriorityLater(it.id, weight)
-    }
   }
 
   override fun readResponseHeaders(expectContinue: Boolean): Response.Builder? {

@@ -28,12 +28,10 @@ import okhttp3.internal.http2.Http2.TYPE_GOAWAY
 import okhttp3.internal.http2.Http2.TYPE_HEADERS
 import okhttp3.internal.http2.Http2.TYPE_PING
 import okhttp3.internal.http2.Http2.TYPE_PRIORITY
-import okhttp3.internal.http2.Http2.TYPE_PRIORITY_UPDATE
 import okhttp3.internal.http2.Http2.TYPE_PUSH_PROMISE
 import okhttp3.internal.http2.Http2.TYPE_RST_STREAM
 import okhttp3.internal.http2.Http2.TYPE_SETTINGS
 import okhttp3.internal.http2.Http2.TYPE_WINDOW_UPDATE
-import okhttp3.internal.http2.Http2.formattedRFC7540PriorityField
 import okhttp3.internal.http2.Http2.frameLog
 import okhttp3.internal.writeMedium
 import okio.Buffer
@@ -65,34 +63,18 @@ class Http2Writer(
     sink.flush()
   }
 
-  // RFC 7540
   @Synchronized @Throws(IOException::class)
-  fun priority(streamId: Int, weight: Int) {
+  fun priority(streamId: Int, streamDependency: Int, weight: Int) {
     if (closed) throw IOException("closed")
+
     frameHeader(
       streamId = streamId,
-      length = 4,
+      length = 5,
       type = TYPE_PRIORITY,
       flags = FLAG_NONE
     )
-    sink.writeInt(streamId and 0x7fffffff)
-    sink.writeInt(weight)
-    sink.flush()
-  }
-
-  // RFC 9218
-  @Synchronized @Throws(IOException::class)
-  fun priorityUpdate(streamId: Int, urgency: Int, incremental: Boolean) {
-    if (closed) throw IOException("closed")
-    val value = formattedRFC7540PriorityField(urgency, incremental)
-    frameHeader(
-      streamId = 0,
-      length = (value.size + 4),
-      type = TYPE_PRIORITY_UPDATE,
-      flags = FLAG_NONE
-    )
-    sink.writeInt(streamId and 0x7fffffff)
-    sink.write(value)
+    sink.writeInt(streamDependency and 0x7fffffff)
+    sink.writeByte(weight-1 and 0xff)
     sink.flush()
   }
 

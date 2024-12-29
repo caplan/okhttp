@@ -24,6 +24,7 @@ import okhttp3.internal.http.BridgeInterceptor
 import okhttp3.internal.http.CallServerInterceptor
 import okhttp3.internal.http.RealInterceptorChain
 import okhttp3.internal.http.RetryAndFollowUpInterceptor
+import okhttp3.internal.http2.Http2.DEFAULT_PRIORITY
 import okhttp3.internal.platform.Platform
 import okhttp3.internal.threadName
 import okio.AsyncTimeout
@@ -54,6 +55,13 @@ class RealCall(
   val originalRequest: Request,
   val forWebSocket: Boolean
 ) : Call {
+
+  @Volatile override var priority: Int = DEFAULT_PRIORITY
+    set(value) {
+      field = value
+      exchange?.let { it.priority = value }
+    }
+
   private val connectionPool: RealConnectionPool = client.connectionPool.delegate
 
   internal val eventListener: EventListener = client.eventListenerFactory.create(this)
@@ -162,14 +170,6 @@ class RealCall(
     eventListener.callStart(this)
   }
 
-  override fun requestPriorityUpdate(urgency: Int, incremental: Boolean) {
-    exchange?.requestPriorityUpdate(urgency, incremental)
-  }
-
-  override fun requestPriority(weight: Int) {
-    exchange?.requestPriority(weight)
-  }
-
   @Throws(IOException::class)
   internal fun getResponseWithInterceptorChain(): Response {
     // Build a full stack of interceptors.
@@ -261,6 +261,11 @@ class RealCall(
     }
 
     if (canceled) throw IOException("Canceled")
+
+    if (priority != DEFAULT_PRIORITY) {
+      result.priority = priority
+    }
+
     return result
   }
 

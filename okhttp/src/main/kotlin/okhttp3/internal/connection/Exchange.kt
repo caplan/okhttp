@@ -33,7 +33,7 @@ class Exchange(
   internal val eventListener: EventListener,
   internal val finder: ExchangeFinder,
   private val codec: ExchangeCodec
-): RequestPriorityUpdateRFC9218 by codec, RequestPriorityRFC7540 by codec {
+): RequestPriority by codec {
   /** True if the request body need not complete before the response body starts. */
   internal var isDuplex: Boolean = false
     private set
